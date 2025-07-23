@@ -1,0 +1,27 @@
+replicaCount: 2
+
+image:
+  repository: yemisi76/student-tracker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: student.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []  # Optional: configure if you use TLS/HTTPS
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: []
