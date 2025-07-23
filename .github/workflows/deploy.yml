@@ -1,0 +1,49 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Copy files to EC2
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "."
+        target: "~/student-tracker"
+
+    - name: SSH and restart app with Vault secrets
+      uses: appleboy/ssh-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd ~/student-tracker
+
+          # Export Vault credentials (if not already in EC2 profile)
+          export VAULT_ADDR="https://your-vault-server"
+          export VAULT_ROLE_ID="your-role-id"
+          export VAULT_SECRET_ID="your-secret-id"
+
+          # Login to Vault and get MONGODB_URI
+          VAULT_TOKEN=$(curl -s --request POST --data '{"role_id":"'"$VAULT_ROLE_ID"'","secret_id":"'"$VAULT_SECRET_ID"'"}' $VAULT_ADDR/v1/auth/approle/login | jq -r '.auth.client_token')
+
+          MONGODB_URI=$(curl -s \
+            --header "X-Vault-Token: $VAULT_TOKEN" \
+            $VAULT_ADDR/v1/secret/data/student-tracker/mongodb | jq -r '.data.data.MONGODB_URI')
+
+          echo "✅ Fetched MongoDB URI from Vault"
+
+          # Run the app
+          pkill uvicorn || true  # kill previous process
+          nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
