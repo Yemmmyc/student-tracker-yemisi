@@ -94,3 +94,4 @@ This project is used for learning cloud-native tools and Handson-Project.
 
 Feel free to fork and extend it!
 ## Week 6 Update - CI/CD in Progress
+# Update to trigger workflow
