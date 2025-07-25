@@ -3,10 +3,11 @@ kind: Service
 metadata:
   name: student-tracker
 spec:
+  type: NodePort   # 👈 Expose the app outside the cluster
   selector:
     app: student-tracker
   ports:
     - protocol: TCP
       port: 8000
       targetPort: 8000
-
+      nodePort: 30080  # 👈 Optional but recommended; pick between 30000–32767
